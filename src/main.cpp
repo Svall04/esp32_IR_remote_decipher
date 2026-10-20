@@ -5,7 +5,7 @@ const int IR_PIN = 27; // Connect the OUT pin of VS1838B to pin 11 of Arduino
 int64_t g_t0;
 bool g_flag = 0;
 
-int64_t times[1000];
+int64_t times[100];
 int i = 0;
 void IR_ISR(void) {
   Serial.println((int64_t)esp_timer_get_time());
