@@ -1,1 +1,7 @@
-.pio
+a.out
+compile_commands.json
+lib
+platformio.ini
+src
+test/
+try.cpp
