@@ -4,3 +4,4 @@ lib
 platformio.ini
 test/
 try.cpp
+.pio
