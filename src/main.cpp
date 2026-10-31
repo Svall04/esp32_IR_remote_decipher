@@ -1,15 +1,18 @@
-#define IR_CODE_FOR_1 =
-#define IR_CODE_FOR_2 =
-#define IR_CODE_FOR_3 =
-#define IR_CODE_FOR_4 =
-#define IR_CODE_FOR_5 =
-#define IR_CODE_FOR_6 =
-#define IR_CODE_FOR_7 =
-#define IR_CODE_FOR_8 =
-#define IR_CODE_FOR_9 =
+#define IR_CODE_FOR_0 3438
+#define IR_CODE_FOR_1 2798
+#define IR_CODE_FOR_2 2926
+#define IR_CODE_FOR_3 2670
+#define IR_CODE_FOR_4 2990
+#define IR_CODE_FOR_5 750
+#define IR_CODE_FOR_6 878
+#define IR_CODE_FOR_7 622
+#define IR_CODE_FOR_8 942
+#define IR_CODE_FOR_9 3312
 
-#define IR_CODE_FOR_RAISING_BRIGHTNESS = 0
-#define IR_CODE_FOR_LOWERING_BRIGHTNESS = 1
+#define IR_CODE_FOR_RAISING_BRIGHTNESS 366
+#define IR_CODE_FOR_LOWERING_BRIGHTNESS 1390
+
+#define IR_CODE_FOR_SETTING_STUFF 3694
 
 #include <Arduino.h>
 #include <TM1637Display.h>
@@ -24,6 +27,7 @@ struct IR_code {
 struct Sys_state {
   uint8_t state = 0;
   uint8_t brightness = 0;
+  uint16_t number_showing = 0;
   Sys_state() {
     state = 0;
     brightness = 0;
@@ -42,14 +46,16 @@ struct Sys_state {
   }
   int display_raise_brightness() {
     brightness++;
-    brightness %= 7;
+    brightness %= 8;
     display.setBrightness(brightness);
+    display.showNumberDec(number_showing);
+    // to be updated, a number must be shown on the dispaly.
     return 0;
   }
   int display_lower_brightness() {
     brightness--;
-    brightness %= 7;
-    display.setBrightness(brightness);
+    brightness %= 8;
+    display.showNumberDec(number_showing);
     return 0;
   };
 };
@@ -68,7 +74,7 @@ QueueHandle_t IR_message_queue = xQueueCreate(16, sizeof(IR_code));
 QueueHandle_t Time_settig_queue = xQueueCreate(16, sizeof(uint8_t));
 void IR_ISR(void);
 
-void manage_remote_codes() {
+void manage_remote_codes(void *parameters) {
   IR_code curr_message;
   // We only act if the button is pressed repetedly, not if it's pressed
   // continuosly.
@@ -85,6 +91,7 @@ void manage_remote_codes() {
         switch (curr_message.message | 4) {
         // to remove the uncdrtanty
         case IR_CODE_FOR_LOWERING_BRIGHTNESS:
+          Serial.print("hiii\n");
           sys.display_lower_brightness();
           break;
         case IR_CODE_FOR_RAISING_BRIGHTNESS:
@@ -103,9 +110,16 @@ void manage_remote_codes() {
     }
   }
 }
+
+void initialize() {
+  xTaskCreatePinnedToCore(manage_remote_codes, "Code manager", 1024, NULL, 1,
+                          NULL, 1);
 }
+
 void setup() {
+  initialize();
   display.setBrightness(0);
+  display.showNumberDec(8888);
   esp_timer_init();
   Serial.begin(115200);
 
@@ -116,22 +130,7 @@ void setup() {
 
 static bool display_on = true; // just for show
 static int i = 10;             // pt2
-void loop() {
-  IR_code recived_message;
-  if (xQueueReceive(IR_message_queue, (void *)&recived_message, 0) == pdPASS) {
-    Serial.print("Ho ricevuto un messaggio! eccolo a te:  ");
-    Serial.println(recived_message.message);
-
-    if (recived_message.message == 1962 | recived_message.message == 1966) {
-      display_on = !display_on;
-      display.setBrightness(7 * display_on);
-      i += display_on;
-      // Serial.print(g_t0);
-      // sleep(3);
-      display.showNumberDecEx(i);
-    }
-  }
-}
+void loop() {}
 
 void IR_ISR(void) {
   int64_t g_t1 = esp_timer_get_time();
